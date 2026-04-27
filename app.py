@@ -1,114 +1,134 @@
 import streamlit as st
 
-# 1. 페이지 설정 및 스크롤 완전 차단
+# 1. 페이지 설정 및 브라우저 기본 여백 완전 제거
 st.set_page_config(layout="wide")
+
 st.markdown("""
     <style>
-    /* 전체 화면 고정 및 여백 제거 */
+    /* 상단 메뉴 및 불필요한 공간 삭제 */
     header, footer {visibility: hidden;}
-    .block-container { padding: 0px !important; margin: 0px !important; }
-    html, body, [data-testid="stAppViewContainer"] { 
-        overflow: hidden !important; 
-        height: 100vh; 
+    [data-testid="stAppViewContainer"] {
+        overflow: hidden !important; /* 스크롤 절대 방지 */
+        height: 100vh;
         background-color: #f0f0f0;
     }
-
-    /* 버튼 컨테이너: 절대 찢어지지 않게 중앙 집중 */
-    .custom-container {
-        max-width: 380px; /* 폭을 좁혀서 중앙으로 모음 */
-        margin: auto;
-        padding-top: 10px;
+    .block-container {
+        padding: 5px !important;
+        max-width: 100vw !important; /* 핸드폰 화면 폭에 100% 맞춤 */
+        margin: 0 !important;
     }
 
-    /* 버튼 행: 무조건 가로 유지 */
-    .btn-row {
+    /* 버튼 행: 무조건 가로로 꽉 채우기 */
+    div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
-        width: 100%;
-        gap: 1px; /* 미세 간격 */
-        margin-bottom: 2px;
-    }
-
-    /* 개별 버튼 디자인 (엑셀 스타일) */
-    .stButton > button {
+        flex-wrap: nowrap !important; /* 줄바꿈 차단 */
+        gap: 1px !important;
         width: 100% !important;
-        height: 42px !important;
-        border-radius: 0px !important;
-        border: 1px solid #444 !important;
-        background-color: #e1e1e1 !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-        padding: 0px !important;
     }
     
-    /* 숫자 버튼 전용 (더 촘촘하게) */
-    .step-row [data-testid="column"] {
+    /* 컬럼 간격 및 여백 제로 */
+    div[data-testid="column"] {
+        padding: 0px !important;
+        margin: 0px !important;
+        min-width: 0px !important;
         flex: 1 !important;
     }
 
-    /* 차트 영역 고정 */
-    .baccarat-board {
-        background: white;
-        border: 1.5px solid #444;
-        height: calc(100vh - 185px);
-        margin-top: 5px;
-        padding: 10px;
+    /* 버튼 디자인: 엑셀 유저폼 스타일 */
+    .stButton > button {
+        width: 100% !important;
+        height: 45px !important;
+        border-radius: 0px !important;
+        border: 1px solid #333 !important;
+        background-color: #e1e1e1 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        color: black !important;
+    }
+
+    /* 상단 정보창 */
+    .info-container {
         display: flex;
-        gap: 4px;
+        border: 1px solid #333;
+        background: white;
+        margin-bottom: 3px;
+    }
+    .info-item {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        border-right: 1px solid #333;
+    }
+
+    /* 바카라 차트 영역: 정석 로직 고정 */
+    .chart-box {
+        background: white;
+        border: 1.5px solid #333;
+        height: calc(100vh - 190px); /* 버튼 높이 제외한 나머지 꽉 채움 */
+        padding: 5px;
+        display: flex;
+        gap: 3px;
         overflow-x: auto;
     }
-    .chart-col { display: flex; flex-direction: column; width: 22px; text-align: center; }
-    .blue-p { color: blue; font-weight: bold; font-size: 18px; }
-    .red-b { color: red; font-weight: bold; font-size: 18px; }
+    .c-col { display: flex; flex-direction: column; width: 20px; text-align: center; }
+    .p-mark { color: blue; font-weight: bold; font-size: 16px; }
+    .b-mark { color: red; font-weight: bold; font-size: 16px; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'history' not in st.session_state: st.session_state.history = []
 
-# --- [메인 레이아웃 박스 시작] ---
-st.markdown('<div class="custom-container">', unsafe_allow_html=True)
+# --- 레이아웃 구현 ---
 
-# 1. 상단 정보창
-t1, t2 = st.columns(2)
-with t1: st.markdown("<div style='border:1px solid #444; background:white; text-align:center; padding:8px; font-size:20px; font-weight:bold;'>1,000</div>", unsafe_allow_html=True)
-with t2: st.markdown("<div style='border:1px solid #444; background:white; text-align:center; padding:8px; font-size:20px; font-weight:bold;'>플레이어</div>", unsafe_allow_html=True)
+# 1. 정보창
+st.markdown(f"""
+    <div class="info-container">
+        <div class="info-item">1,000</div>
+        <div class="info-item" style="border-right:0;">플레이어</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# 2. 메인 버튼 4개 (가로 밀착)
+# 2. 첫째 줄: 메인 버튼 4개 (플, 뱅, 뒤로, 초기)
 row1 = st.columns(4)
-with row1[0]: 
+with row1[0]:
     if st.button("플"): st.session_state.history.append("P")
-with row1[1]: 
+with row1[1]:
     if st.button("뱅"): st.session_state.history.append("B")
-with row1[2]: 
+with row1[2]:
     if st.button("뒤로"): 
         if st.session_state.history: st.session_state.history.pop()
-with row1[3]: 
+with row1[3]:
     if st.button("초기"): st.session_state.history = []
 
-# 3. 단계 버튼 8개 (가로 밀착)
+# 3. 둘째 줄: 단계 버튼 8개 (1~8)
 row2 = st.columns(8)
 for i in range(1, 9):
     with row2[i-1]:
         st.button(str(i))
 
-# 4. 바카라 정석 차트 로직
-def draw_chart(history):
-    if not history: return "<div class='baccarat-board'></div>"
-    cols, curr = [], [history[0]]
+# 4. 바카라 로직 차트
+def get_chart(history):
+    if not history: return "<div class='chart-box'></div>"
+    cols, temp = [], [history[0]]
     for i in range(1, len(history)):
-        if history[i] == history[i-1]: curr.append(history[i])
-        else: cols.append(curr); curr = [history[i]]
-    cols.append(curr)
+        if history[i] == history[i-1]:
+            temp.append(history[i])
+        else:
+            cols.append(temp)
+            temp = [history[i]]
+    cols.append(temp)
     
-    html = "<div class='baccarat-board'>"
+    html = "<div class='chart-box'>"
     for col in cols:
         html += "<div class='chart-col'>"
         for item in col:
-            cls = "blue-p" if item == "P" else "red-b"
+            cls = "p-mark" if item == "P" else "b-mark"
             html += f"<span class='{cls}'>{item}</span>"
         html += "</div>"
     html += "</div>"
     return html
 
-st.markdown(draw_chart(st.session_state.history), unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown(get_chart(st.session_state.history), unsafe_allow_html=True)
