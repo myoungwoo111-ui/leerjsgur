@@ -1,102 +1,81 @@
 import streamlit as st
 
-# 1. 페이지 레이아웃 설정
+# 1. 페이지 전체를 가장 넓게 설정
 st.set_page_config(layout="wide")
 
-# 2. 버튼 가로 꽉 참 & 모바일 고정 CSS
+# 2. 모든 여백을 죽이고 버튼을 강제로 밀착시키는 강력한 CSS
 st.markdown("""
     <style>
-    /* 상단 메뉴 등 불필요한 여백 제거 */
-    .block-container { padding-top: 1rem; padding-bottom: 0rem; }
+    /* 1. 기본 컨테이너 여백 제거 (좌우 꽉 차게) */
+    .block-container { 
+        padding-top: 5px !important; 
+        padding-bottom: 0px !important; 
+        padding-left: 5px !important; 
+        padding-right: 5px !important; 
+    }
     
-    /* 가로 블록 강제 고정 및 꽉 채우기 */
+    /* 2. 가로 배치(st.columns) 시 발생하는 모든 여백과 줄바꿈 차단 */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         width: 100% !important;
-        gap: 2px !important; /* 버튼 사이 아주 미세한 간격 */
+        gap: 0px !important; /* 버튼 사이 간격 0 */
     }
     
-    /* 각 컬럼이 정확히 N등분 되도록 설정 */
+    /* 3. 각 컬럼 칸 사이의 여백 제거 */
     [data-testid="column"] {
+        padding: 0px !important;
+        margin: 0px !important;
         flex: 1 1 0% !important;
         min-width: 0px !important;
     }
 
-    /* 버튼 스타일: 테두리 강조 및 꽉 채우기 */
+    /* 4. 버튼 스타일: 엑셀처럼 각지고 테두리 있게, 여백 없이 꽉 참 */
     .stButton>button {
         width: 100% !important;
-        height: 45px !important;
+        height: 50px !important;
+        margin: 0px !important;
         padding: 0px !important;
-        font-size: 14px !important;
+        border-radius: 0px !important; /* 각지게 */
+        border: 0.5px solid #444 !important; /* 얇은 테두리 */
         font-weight: bold !important;
-        border: 1px solid #777 !important;
-        border-radius: 0px !important; /* 엑셀 느낌을 위해 각지게 */
+        background-color: #f0f0f0;
     }
-
-    /* 상단 정보 박스 꽉 채우기 */
+    
+    /* 상단 텍스트 박스 밀착 */
     .info-box {
-        background-color: white;
-        border: 1px solid #777;
+        border: 1px solid #444;
         text-align: center;
         padding: 10px 0;
-        font-size: 22px;
+        font-size: 20px;
         font-weight: bold;
-        width: 100%;
+        background: #ffffff;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 데이터 관리
-if 'history' not in st.session_state: st.session_state.history = []
-
-# --- [상단] 정보창 (2등분 꽉 참) ---
+# --- [상단] 정보창 (2열 밀착) ---
 t1, t2 = st.columns(2)
 t1.markdown("<div class='info-box'>1,000</div>", unsafe_allow_html=True)
 t2.markdown("<div class='info-box'>플레이어</div>", unsafe_allow_html=True)
 
-st.write("")
-
-# --- [중단] 메인 액션 버튼 (4등분 꽉 참) ---
+# --- [중단] 메인 버튼 (4열 밀착) ---
 c1, c2, c3, c4 = st.columns(4)
-if c1.button("플"): st.session_state.history.append("P")
-if c2.button("뱅"): st.session_state.history.append("B")
-if c3.button("🔙"): 
-    if st.session_state.history: st.session_state.history.pop()
-if c4.button("🔄"): st.session_state.history = []
+c1.button("플")
+c2.button("뱅")
+c3.button("뒤로")
+c4.button("초기")
 
-st.write("")
-
-# --- [중단] 단계 버튼 (8등분 꽉 참) ---
-step_cols = st.columns(8)
+# --- [중단] 단계 버튼 (8열 밀착) ---
+s_cols = st.columns(8)
 for i in range(1, 9):
-    step_cols[i-1].button(f"{i}")
+    s_cols[i-1].button(f"{i}")
 
-st.write("")
-
-# --- [하단] 기록 차트 ---
-def get_chart_html(history):
-    if not history: return "<div style='border:1px solid #ccc; height:200px; padding:10px;'>기록 대기 중...</div>"
-    
-    columns = []
-    current_col = [history[0]]
-    for i in range(1, len(history)):
-        if history[i] == history[i-1]:
-            current_col.append(history[i])
-        else:
-            columns.append(current_col)
-            current_col = [history[i]]
-    columns.append(current_col)
-    
-    html = "<div style='display: flex; gap: 8px; border:1px solid #777; padding:10px; background:white; overflow-x:auto;'>"
-    for col in columns:
-        html += "<div style='display: flex; flex-direction: column;'>"
-        for item in col:
-            color = "blue" if item == "P" else "red"
-            html += f"<span style='color: {color}; font-weight: bold; font-size: 18px;'>{item}</span>"
-        html += "</div>"
-    html += "</div>"
-    return html
-
-st.markdown(get_chart_html(st.session_state.history), unsafe_allow_html=True)
+# --- [하단] 기록 현황판 (테두리 꽉 차게) ---
+st.markdown("""
+    <div style='border: 1px solid #444; height: 300px; padding: 5px; background: white;'>
+        <p style='color:blue; font-weight:bold; margin:0;'>P</p>
+        <p style='color:red; font-weight:bold; margin:0;'>B</p>
+    </div>
+    """, unsafe_allow_html=True)
