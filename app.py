@@ -1,81 +1,91 @@
 import streamlit as st
 
-# 1. 페이지 전체를 가장 넓게 설정
+# 1. 화면 설정 (중앙 집중형을 위해 wide 대신 centered 검토 가능하나, 커스텀 CSS가 핵심)
 st.set_page_config(layout="wide")
 
-# 2. 모든 여백을 죽이고 버튼을 강제로 밀착시키는 강력한 CSS
+# 2. 강제 밀착 및 반응형 오류 수정 CSS
 st.markdown("""
     <style>
-    /* 1. 기본 컨테이너 여백 제거 (좌우 꽉 차게) */
-    .block-container { 
-        padding-top: 5px !important; 
-        padding-bottom: 0px !important; 
-        padding-left: 5px !important; 
-        padding-right: 5px !important; 
+    /* 전체 배경색 및 폰트 */
+    .stApp { background-color: #f5f5f5; }
+    
+    /* 본문 컨테이너 폭 제한 (양 끝으로 찢어짐 방지) */
+    .block-container {
+        max-width: 500px !important; /* 모바일 최적 폭 */
+        padding: 10px !important;
+        margin: auto !important;
     }
     
-    /* 2. 가로 배치(st.columns) 시 발생하는 모든 여백과 줄바꿈 차단 */
+    /* 가로 행(Row) 설정: 강제로 버튼들을 다닥다닥 붙임 */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: nowrap !important; /* 줄바꿈 절대 방지 */
+        gap: 2px !important; /* 미세한 간격 */
         width: 100% !important;
-        gap: 0px !important; /* 버튼 사이 간격 0 */
     }
     
-    /* 3. 각 컬럼 칸 사이의 여백 제거 */
+    /* 각 칸(Column) 설정 */
     [data-testid="column"] {
-        padding: 0px !important;
-        margin: 0px !important;
-        flex: 1 1 0% !important;
+        flex: 1 !important;
         min-width: 0px !important;
+        padding: 0px !important;
     }
 
-    /* 4. 버튼 스타일: 엑셀처럼 각지고 테두리 있게, 여백 없이 꽉 참 */
+    /* 버튼 스타일: 엑셀 유저폼 느낌 극대화 */
     .stButton>button {
         width: 100% !important;
-        height: 50px !important;
-        margin: 0px !important;
-        padding: 0px !important;
-        border-radius: 0px !important; /* 각지게 */
-        border: 0.5px solid #444 !important; /* 얇은 테두리 */
+        height: 45px !important;
+        border-radius: 2px !important;
+        border: 1px solid #999 !important;
+        background-color: #eeeeee !important;
+        color: black !important;
+        font-size: 14px !important;
         font-weight: bold !important;
-        background-color: #f0f0f0;
+        padding: 0px !important;
     }
-    
-    /* 상단 텍스트 박스 밀착 */
+
+    /* 상단 정보 박스 */
     .info-box {
-        border: 1px solid #444;
+        background: white;
+        border: 1px solid #999;
         text-align: center;
-        padding: 10px 0;
-        font-size: 20px;
+        padding: 8px 0;
+        font-size: 18px;
         font-weight: bold;
-        background: #ffffff;
+        margin-bottom: 5px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- [상단] 정보창 (2열 밀착) ---
+# 데이터 초기화
+if 'history' not in st.session_state: st.session_state.history = []
+
+# --- 상단 (2등분) ---
 t1, t2 = st.columns(2)
 t1.markdown("<div class='info-box'>1,000</div>", unsafe_allow_html=True)
 t2.markdown("<div class='info-box'>플레이어</div>", unsafe_allow_html=True)
 
-# --- [중단] 메인 버튼 (4열 밀착) ---
+# --- 메인 버튼 (4등분 밀착) ---
 c1, c2, c3, c4 = st.columns(4)
-c1.button("플")
-c2.button("뱅")
-c3.button("뒤로")
-c4.button("초기")
+if c1.button("플"): st.session_state.history.append("P")
+if c2.button("뱅"): st.session_state.history.append("B")
+if c3.button("뒤로"): 
+    if st.session_state.history: st.session_state.history.pop()
+if c4.button("초기"): st.session_state.history = []
 
-# --- [중단] 단계 버튼 (8열 밀착) ---
+# --- 단계 버튼 (8등분 밀착) ---
 s_cols = st.columns(8)
 for i in range(1, 9):
     s_cols[i-1].button(f"{i}")
 
-# --- [하단] 기록 현황판 (테두리 꽉 차게) ---
-st.markdown("""
-    <div style='border: 1px solid #444; height: 300px; padding: 5px; background: white;'>
-        <p style='color:blue; font-weight:bold; margin:0;'>P</p>
-        <p style='color:red; font-weight:bold; margin:0;'>B</p>
-    </div>
-    """, unsafe_allow_html=True)
+st.write("")
+
+# --- 하단 기록장 ---
+st.markdown("<p style='font-weight:bold; margin-bottom:5px;'>📊 실시간 기록 현황</p>", unsafe_allow_html=True)
+record_html = f"""
+<div style='background:white; border:1px solid #999; height:200px; padding:10px; overflow-x:auto; display:flex; gap:10px;'>
+    {' '.join([f"<b style='color:{('blue' if x=='P' else 'red')}'>{x}</b>" for x in st.session_state.history])}
+</div>
+"""
+st.markdown(record_html, unsafe_allow_html=True)
