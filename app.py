@@ -1,91 +1,85 @@
 import streamlit as st
 
-# 1. 화면 설정 (중앙 집중형을 위해 wide 대신 centered 검토 가능하나, 커스텀 CSS가 핵심)
+# 1. 페이지 설정
 st.set_page_config(layout="wide")
 
-# 2. 강제 밀착 및 반응형 오류 수정 CSS
+# 2. 버튼 밀착 및 차트 전용 CSS
 st.markdown("""
     <style>
-    /* 전체 배경색 및 폰트 */
-    .stApp { background-color: #f5f5f5; }
+    /* 여백 완전히 제거 */
+    .block-container { padding: 5px !important; max-width: 450px !important; margin: auto !important; }
     
-    /* 본문 컨테이너 폭 제한 (양 끝으로 찢어짐 방지) */
-    .block-container {
-        max-width: 500px !important; /* 모바일 최적 폭 */
-        padding: 10px !important;
-        margin: auto !important;
-    }
-    
-    /* 가로 행(Row) 설정: 강제로 버튼들을 다닥다닥 붙임 */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important; /* 줄바꿈 절대 방지 */
-        gap: 2px !important; /* 미세한 간격 */
-        width: 100% !important;
-    }
-    
-    /* 각 칸(Column) 설정 */
-    [data-testid="column"] {
-        flex: 1 !important;
-        min-width: 0px !important;
-        padding: 0px !important;
-    }
+    /* 버튼 가로로 다닥다닥 붙이기 */
+    [data-testid="stHorizontalBlock"] { display: flex !important; flex-direction: row !important; gap: 1px !important; }
+    [data-testid="column"] { flex: 1 !important; min-width: 0px !important; padding: 0px !important; }
 
-    /* 버튼 스타일: 엑셀 유저폼 느낌 극대화 */
+    /* 버튼 스타일 (엑셀 유저폼 스타일) */
     .stButton>button {
-        width: 100% !important;
-        height: 45px !important;
-        border-radius: 2px !important;
-        border: 1px solid #999 !important;
-        background-color: #eeeeee !important;
-        color: black !important;
-        font-size: 14px !important;
-        font-weight: bold !important;
-        padding: 0px !important;
+        width: 100% !important; height: 45px !important; border-radius: 0px !important;
+        border: 1px solid #444 !important; font-size: 14px !important; font-weight: bold !important;
     }
 
-    /* 상단 정보 박스 */
-    .info-box {
-        background: white;
-        border: 1px solid #999;
-        text-align: center;
-        padding: 8px 0;
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
+    /* 정보 표시창 */
+    .info-box { border: 1px solid #444; text-align: center; padding: 10px; font-size: 20px; font-weight: bold; background: white; margin-bottom: 5px; }
+
+    /* 차트판 스타일 */
+    .chart-area { background: white; border: 1px solid #444; min-height: 250px; padding: 10px; display: flex; gap: 5px; overflow-x: auto; }
+    .chart-column { display: flex; flex-direction: column; width: 22px; text-align: center; }
+    .p-mark { color: blue; font-weight: bold; font-size: 18px; }
+    .b-mark { color: red; font-weight: bold; font-size: 18px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 데이터 초기화
+# 세션 상태 초기화
 if 'history' not in st.session_state: st.session_state.history = []
 
-# --- 상단 (2등분) ---
+# --- [상단] 금액/추천창 ---
 t1, t2 = st.columns(2)
 t1.markdown("<div class='info-box'>1,000</div>", unsafe_allow_html=True)
 t2.markdown("<div class='info-box'>플레이어</div>", unsafe_allow_html=True)
 
-# --- 메인 버튼 (4등분 밀착) ---
+# --- [중단] 메인 버튼 (4개 밀착) ---
 c1, c2, c3, c4 = st.columns(4)
 if c1.button("플"): st.session_state.history.append("P")
 if c2.button("뱅"): st.session_state.history.append("B")
-if c3.button("뒤로"): 
+if c3.button("🔙"): 
     if st.session_state.history: st.session_state.history.pop()
-if c4.button("초기"): st.session_state.history = []
+if c4.button("🔄"): st.session_state.history = []
 
-# --- 단계 버튼 (8등분 밀착) ---
+# --- [중단] 단계 버튼 (8개 밀착) ---
 s_cols = st.columns(8)
 for i in range(1, 9):
     s_cols[i-1].button(f"{i}")
 
 st.write("")
 
-# --- 하단 기록장 ---
-st.markdown("<p style='font-weight:bold; margin-bottom:5px;'>📊 실시간 기록 현황</p>", unsafe_allow_html=True)
-record_html = f"""
-<div style='background:white; border:1px solid #999; height:200px; padding:10px; overflow-x:auto; display:flex; gap:10px;'>
-    {' '.join([f"<b style='color:{('blue' if x=='P' else 'red')}'>{x}</b>" for x in st.session_state.history])}
-</div>
-"""
-st.markdown(record_html, unsafe_allow_html=True)
+# --- [하단] 바카라 차트 로직 (같으면 아래, 틀리면 옆) ---
+st.caption("📋 실시간 기록 차트")
+
+def render_baccarat_logic(history):
+    if not history: return "<div class='chart-area'>기록 없음</div>"
+    
+    columns = []
+    current_col = [history[0]]
+    
+    for i in range(1, len(history)):
+        # 앞의 글자와 같으면 같은 컬럼(아래로), 틀리면 새로운 컬럼(옆으로)
+        if history[i] == history[i-1]:
+            current_col.append(history[i])
+        else:
+            columns.append(current_col)
+            current_col = [history[i]]
+    columns.append(current_col)
+    
+    # HTML 생성
+    html = "<div class='chart-area'>"
+    for col in columns:
+        html += "<div class='chart-column'>"
+        for item in col:
+            cls = "p-mark" if item == "P" else "b-mark"
+            html += f"<span class={cls}>{item}</span>"
+        html += "</div>"
+    html += "</div>"
+    return html
+
+st.markdown(render_baccarat_logic(st.session_state.history), unsafe_allow_html=True)
