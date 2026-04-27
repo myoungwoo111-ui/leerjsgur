@@ -1,29 +1,58 @@
 import streamlit as st
 import pandas as pd
-import os
 
-# 파일 이름 (반드시 GitHub에 올린 이름과 똑같이 적으세요!)
-EXCEL_FILE = "바카라 아르고.xlsm" 
+st.set_page_config(page_title="바카라 알파고 시스템", layout="wide")
 
-st.title("📊 현재 엑셀 데이터 현황")
+# 세션 상태 초기화 (데이터 유지용)
+if 'history' not in st.session_state:
+    st.session_state.history = []
+if 'step' not in st.session_state:
+    st.session_state.step = 1
 
-# 1. 파일이 존재하는지 먼저 확인
-if os.path.exists(EXCEL_FILE):
-    try:
-        df = pd.read_excel(EXCEL_FILE)
-        st.dataframe(df)
-        
-        # 다운로드 버튼
-        with open(EXCEL_FILE, "rb") as f:
-            st.download_button(
-                label="📥 엑셀 다운로드",
-                data=f,
-                file_name=EXCEL_FILE,
-                mime="application/vnd.ms-excel.sheet.macroEnabled.12"
-            )
-    except Exception as e:
-        st.error(f"파일을 읽는 중 오류가 발생했습니다: {e}")
-else:
-    # 파일이 없을 경우 에러 대신 안내 메시지 출력
-    st.error(f"'{EXCEL_FILE}' 파일을 찾을 수 없습니다. GitHub에 올린 파일명과 일치하는지 확인해주세요.")
-    st.info("현재 저장소에 있는 파일 목록을 확인해보세요.")
+st.title("🖥️ 바카라 알파고 시스템")
+
+# 상단 버튼 레이아웃 (사진의 플레이어, 뱅커, 뒤로가기, 초기화)
+top_col1, top_col2, top_col3, top_col4 = st.columns(4)
+with top_col1:
+    if st.button("🔵 플레이어", use_container_width=True):
+        st.session_state.history.append("플레이어")
+with top_col2:
+    if st.button("🔴 뱅커", use_container_width=True):
+        st.session_state.history.append("뱅커")
+with top_col3:
+    if st.button("↩️ 뒤로가기", use_container_width=True):
+        if st.session_state.history: st.session_state.history.pop()
+with top_col4:
+    if st.button("🔄 초기화", use_container_width=True):
+        st.session_state.history = []
+        st.session_state.step = 1
+
+# 단계 선택 버튼 (1번~8번)
+st.write("### 단계 선택")
+step_cols = st.columns(8)
+for i in range(1, 9):
+    with step_cols[i-1]:
+        if st.button(f"{i}번", key=f"step_{i}", use_container_width=True):
+            st.session_state.step = i
+
+# 중앙 데이터 표시창 (사진의 넓은 흰색 박스)
+st.divider()
+c1, c2 = st.columns([1, 3])
+with c1:
+    st.subheader("현재 설정")
+    st.metric("선택된 단계", f"{st.session_state.step}번")
+    st.write("**분석 결과:**")
+    st.info("뱅커" if len(st.session_state.history) % 2 == 0 else "플레이어")
+
+with c2:
+    st.subheader("실시간 입력 기록")
+    if st.session_state.history:
+        record_df = pd.DataFrame(st.session_state.history, columns=["입력 결과"])
+        st.table(record_df.tail(10)) # 최근 10개 기록 표시
+    else:
+        st.write("데이터가 없습니다. 버튼을 눌러 입력을 시작하세요.")
+
+# 엑셀 다운로드 (기록 저장용)
+if st.session_state.history:
+    csv = record_df.to_csv(index=False).encode('utf-8-sig')
+    st.download_button("📥 현재 기록 엑셀 저장", csv, "baccarat_record.csv", "text/csv")
