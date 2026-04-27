@@ -1,48 +1,29 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+import os
 
-# 페이지 설정
-st.set_page_config(page_title="사용자 관리 시스템", layout="centered")
+# 파일 이름 (반드시 GitHub에 올린 이름과 똑같이 적으세요!)
+EXCEL_FILE = "바카라 아르고.xlsm" 
 
-# 데이터 저장을 위한 세션 상태 초기화
-if 'user_data' not in st.session_state:
-    st.session_state['user_data'] = pd.DataFrame(columns=["일시", "이름", "전화번호", "내용"])
+st.title("📊 현재 엑셀 데이터 현황")
 
-st.title("📋 사용자 관리 시스템 (Web)")
-
-# 입력 폼
-with st.form("user_form", clear_on_submit=True):
-    st.subheader("정보 입력")
-    name = st.text_input("이름")
-    phone = st.text_input("전화번호")
-    content = st.text_area("내용")
-    
-    submit = st.form_submit_button("정보 전송")
-
-if submit:
-    if name and phone:
-        # 데이터 생성 및 추가
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        new_row = {"일시": now, "이름": name, "전화번호": phone, "내용": content}
+# 1. 파일이 존재하는지 먼저 확인
+if os.path.exists(EXCEL_FILE):
+    try:
+        df = pd.read_excel(EXCEL_FILE)
+        st.dataframe(df)
         
-        # 세션에 데이터 누적 저장
-        st.session_state['user_data'] = pd.concat([st.session_state['user_data'], pd.DataFrame([new_row])], ignore_index=True)
-        st.success(f"{name}님의 정보가 전송되었습니다.")
-    else:
-        st.error("이름과 전화번호를 입력해주세요.")
-
-# 누적된 데이터 보여주기
-if not st.session_state['user_data'].empty:
-    st.divider()
-    st.subheader("현재까지 접수된 명단")
-    st.dataframe(st.session_state['user_data'])
-
-    # 엑셀(CSV) 다운로드 버튼 추가
-    csv = st.session_state['user_data'].to_csv(index=False).encode('utf-8-sig')
-    st.download_button(
-        label="📥 전체 명단 엑셀로 다운로드",
-        data=csv,
-        file_name=f"user_list_{datetime.now().strftime('%Y%m%d')}.csv",
-        mime="text/csv",
-    )
+        # 다운로드 버튼
+        with open(EXCEL_FILE, "rb") as f:
+            st.download_button(
+                label="📥 엑셀 다운로드",
+                data=f,
+                file_name=EXCEL_FILE,
+                mime="application/vnd.ms-excel.sheet.macroEnabled.12"
+            )
+    except Exception as e:
+        st.error(f"파일을 읽는 중 오류가 발생했습니다: {e}")
+else:
+    # 파일이 없을 경우 에러 대신 안내 메시지 출력
+    st.error(f"'{EXCEL_FILE}' 파일을 찾을 수 없습니다. GitHub에 올린 파일명과 일치하는지 확인해주세요.")
+    st.info("현재 저장소에 있는 파일 목록을 확인해보세요.")
