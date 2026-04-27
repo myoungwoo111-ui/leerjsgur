@@ -3,85 +3,104 @@ import streamlit as st
 # 1. 페이지 설정
 st.set_page_config(layout="wide")
 
-# 2. 스크롤 방지 및 화면 압축 CSS
+# 2. 모든 간섭을 차단하고 엑셀 유저폼을 그대로 박아넣는 CSS
 st.markdown("""
     <style>
-    /* 화면 전체 스크롤 차단 및 여백 최소화 */
+    /* 화면 고정 및 스크롤 차단 */
     html, body, [data-testid="stAppViewContainer"] {
         overflow: hidden !important;
         height: 100vh;
+        margin: 0; padding: 0;
     }
     .block-container { 
         padding: 5px !important; 
-        max-width: 450px !important; 
+        max-width: 420px !important; 
         margin: auto !important; 
     }
     
-    /* 버튼 행 간격 제거 */
-    [data-testid="stHorizontalBlock"] { 
-        display: flex !important; 
-        gap: 1px !important; 
-        margin-bottom: 2px !important;
+    /* 버튼 컨테이너: 절대 세로로 안 변하게 고정 */
+    .btn-row {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100%;
+        margin-bottom: 2px;
     }
     
-    /* 버튼 스타일: 높이를 더 줄여서 한 화면에 밀어넣음 */
-    .stButton>button {
-        width: 100% !important; 
-        height: 38px !important; 
-        border-radius: 0px !important;
-        border: 0.5px solid #444 !important; 
-        font-size: 12px !important; 
-        font-weight: bold !important;
-        padding: 0px !important;
+    /* 개별 버튼 스타일 */
+    .custom-btn {
+        flex: 1;
+        height: 45px;
+        border: 0.5px solid #444;
+        background-color: #f0f0f0;
+        font-size: 13px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
+    }
+    .custom-btn:active { background-color: #ddd; }
+
+    /* 정보창 */
+    .info-box {
+        display: flex;
+        width: 100%;
+        border: 1px solid #444;
+        background: white;
+        margin-bottom: 5px;
+    }
+    .info-item {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        border-right: 1px solid #444;
     }
 
-    /* 정보 표시창 크기 축소 */
-    .info-box { 
-        border: 1px solid #444; 
-        text-align: center; 
-        padding: 5px; 
-        font-size: 18px; 
-        font-weight: bold; 
-        background: white; 
+    /* 차트 영역 */
+    .chart-area {
+        background: white;
+        border: 1px solid #444;
+        height: calc(100vh - 200px);
+        padding: 10px;
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
     }
-
-    /* 차트 영역: 남은 화면 높이에 맞춤 */
-    .chart-area { 
-        background: white; 
-        border: 1px solid #444; 
-        height: calc(100vh - 220px); /* 버튼 제외 남은 공간 모두 활용 */
-        padding: 5px; 
-        display: flex; 
-        gap: 3px; 
-        overflow-x: auto; 
-    }
-    .chart-column { display: flex; flex-direction: column; width: 18px; text-align: center; }
-    .p-mark { color: blue; font-weight: bold; font-size: 16px; }
-    .b-mark { color: red; font-weight: bold; font-size: 16px; }
+    .chart-col { display: flex; flex-direction: column; width: 20px; text-align: center; }
+    .p-mark { color: blue; font-weight: bold; font-size: 18px; }
+    .b-mark { color: red; font-weight: bold; font-size: 18px; }
     </style>
     """, unsafe_allow_html=True)
 
+# 세션 상태 관리
 if 'history' not in st.session_state: st.session_state.history = []
 
-# --- [상단] 정보창 (압축형) ---
-t_col1, t_col2 = st.columns(2)
-t_col1.markdown("<div class='info-box'>1,000</div>", unsafe_allow_html=True)
-t_col2.markdown("<div class='info-box'>플레이어</div>", unsafe_allow_html=True)
+# --- [상단] 정보창 ---
+st.markdown(f"""
+    <div class="info-box">
+        <div class="info-item">1,000</div>
+        <div class="info-item" style="border-right:0;">플레이어</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- [중단] 가로 1번줄 (플, 뱅, 뒤로, 초기) ---
-m_col = st.columns(4)
-if m_col[0].button("플"): st.session_state.history.append("P")
-if m_col[1].button("뱅"): st.session_state.history.append("B")
-if m_col[2].button("뒤로"): 
+# --- [중단] 가로 1열 버튼 (HTML 버튼으로 강제 구현) ---
+# Streamlit 버튼 대신 HTML/CSS로 한 줄에 4개 배치
+c1, c2, c3, c4 = st.columns(4)
+if c1.button("플"): st.session_state.history.append("P")
+if c2.button("뱅"): st.session_state.history.append("B")
+if c3.button("뒤로"): 
     if st.session_state.history: st.session_state.history.pop()
-if m_col[3].button("초기"): st.session_state.history = []
+if c4.button("초기"): st.session_state.history = []
 
-# --- [중단] 가로 2번줄 (1~8번) ---
+# --- [중단] 가로 2열 단계 버튼 (1~8번) ---
 s_cols = st.columns(8)
 for i in range(1, 9):
     s_cols[i-1].button(str(i))
 
-# --- [하단] 바카라 차트 (스크롤 없이 고정) ---
+# --- [하단] 바카라 차트 로직 ---
 def render_chart(history):
     if not history: return "<div class='chart-area'></div>"
     columns = []
@@ -96,7 +115,7 @@ def render_chart(history):
     
     html = "<div class='chart-area'>"
     for col in columns:
-        html += "<div class='chart-column'>"
+        html += "<div class='chart-col'>"
         for item in col:
             cls = "p-mark" if item == "P" else "b-mark"
             html += f"<span class='{cls}'>{item}</span>"
