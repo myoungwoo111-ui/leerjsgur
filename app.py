@@ -1,50 +1,58 @@
 import streamlit as st
 import pandas as pd
-import xlwings as xw # 엑셀 로직 실행용 (서버 환경에 따라 설정 필요)
-import os
-
-# 파일명 설정
-EXCEL_FILE = "바카라 알파고.xlsm" 
 
 st.set_page_config(page_title="바카라 알파고 시스템", layout="wide")
 
-st.title("🕹️ 바카라 알파고 시스템")
+# 세션 상태 초기화 (데이터 유지용)
+if 'history' not in st.session_state:
+    st.session_state.history = []
+if 'step' not in st.session_state:
+    st.session_state.step = 1
 
-# 버튼 레이아웃
-col1, col2, col3, col4 = st.columns(4)
+st.title("🖥️ 바카라 알파고 시스템")
 
-with col1:
+# 상단 버튼 레이아웃 (사진의 플레이어, 뱅커, 뒤로가기, 초기화)
+top_col1, top_col2, top_col3, top_col4 = st.columns(4)
+with top_col1:
     if st.button("🔵 플레이어", use_container_width=True):
-        st.write("플레이어 입력 로직 실행 중...")
-        # 여기에 엑셀 특정 셀에 'P'를 입력하는 코드가 들어갑니다.
-
-with col2:
+        st.session_state.history.append("플레이어")
+with top_col2:
     if st.button("🔴 뱅커", use_container_width=True):
-        st.write("뱅커 입력 로직 실행 중...")
-        # 여기에 엑셀 특정 셀에 'B'를 입력하는 코드가 들어갑니다.
-
-with col3:
+        st.session_state.history.append("뱅커")
+with top_col3:
     if st.button("↩️ 뒤로가기", use_container_width=True):
-        pass
-
-with col4:
+        if st.session_state.history: st.session_state.history.pop()
+with top_col4:
     if st.button("🔄 초기화", use_container_width=True):
-        pass
+        st.session_state.history = []
+        st.session_state.step = 1
 
+# 단계 선택 버튼 (1번~8번)
+st.write("### 단계 선택")
+step_cols = st.columns(8)
+for i in range(1, 9):
+    with step_cols[i-1]:
+        if st.button(f"{i}번", key=f"step_{i}", use_container_width=True):
+            st.session_state.step = i
+
+# 중앙 데이터 표시창 (사진의 넓은 흰색 박스)
 st.divider()
+c1, c2 = st.columns([1, 3])
+with c1:
+    st.subheader("현재 설정")
+    st.metric("선택된 단계", f"{st.session_state.step}번")
+    st.write("**분석 결과:**")
+    st.info("뱅커" if len(st.session_state.history) % 2 == 0 else "플레이어")
 
-# 엑셀 시트의 주요 정보만 추출해서 보여주기 (예: 배팅금액, 단계 등)
-if os.path.exists(EXCEL_FILE):
-    df = pd.read_excel(EXCEL_FILE, header=None)
-    
-    # 사진의 디자인을 흉내내기 위한 정보 표시
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric("현재 배팅금", str(df.iloc[1, 2])) # 엑셀 위치에 따라 숫자 수정 필요
-    with c2:
-        st.info(f"분석값: {df.iloc[4, 12] if len(df.columns) > 12 else '대기중'}")
+with c2:
+    st.subheader("실시간 입력 기록")
+    if st.session_state.history:
+        record_df = pd.DataFrame(st.session_state.history, columns=["입력 결과"])
+        st.table(record_df.tail(10)) # 최근 10개 기록 표시
+    else:
+        st.write("데이터가 없습니다. 버튼을 눌러 입력을 시작하세요.")
 
-    st.subheader("📋 실시간 기록표")
-    st.dataframe(df.iloc[3:15, 1:18]) # 주요 데이터 영역만 잘라서 표시
-else:
-    st.error("파일을 찾을 수 없습니다. GitHub 이름을 확인해주세요.")
+# 엑셀 다운로드 (기록 저장용)
+if st.session_state.history:
+    csv = record_df.to_csv(index=False).encode('utf-8-sig')
+    st.download_button("📥 현재 기록 엑셀 저장", csv, "baccarat_record.csv", "text/csv")
