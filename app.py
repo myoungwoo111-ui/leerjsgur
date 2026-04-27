@@ -1,58 +1,62 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="바카라 알파고 시스템", layout="wide")
+# 페이지 레이아웃을 넓게 설정
+st.set_page_config(page_title="바카라 알파고", layout="wide", initial_sidebar_state="collapsed")
 
-# 세션 상태 초기화 (데이터 유지용)
-if 'history' not in st.session_state:
-    st.session_state.history = []
-if 'step' not in st.session_state:
-    st.session_state.step = 1
+# 모바일에서도 한눈에 보이도록 CSS 스타일 추가
+st.markdown("""
+    <style>
+    .stButton>button { width: 100%; height: 60px; font-size: 18px !important; font-weight: bold; margin-bottom: -10px; }
+    div[data-testid="stHorizontalBlock"] { gap: 5px !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
+# 데이터 초기화
+if 'history' not in st.session_state: st.session_state.history = []
+if 'step' not in st.session_state: st.session_state.step = "1번"
+
+# --- [상단] 현재 상태 요약 (엑셀의 핵심 정보창) ---
 st.title("🖥️ 바카라 알파고 시스템")
+res_col1, res_col2, res_col3 = st.columns(3)
+with res_col1:
+    st.metric("현재 단계", st.session_state.step)
+with res_col2:
+    # 엑셀 로직에 따른 다음 배팅 추천 (예시)
+    st.metric("배팅 추천", "뱅커" if len(st.session_state.history) % 2 == 0 else "플레이어")
+with res_col3:
+    st.metric("배팅 금액", "4,000" if st.session_state.step == "1번" else "12,000")
 
-# 상단 버튼 레이아웃 (사진의 플레이어, 뱅커, 뒤로가기, 초기화)
-top_col1, top_col2, top_col3, top_col4 = st.columns(4)
-with top_col1:
-    if st.button("🔵 플레이어", use_container_width=True):
-        st.session_state.history.append("플레이어")
-with top_col2:
-    if st.button("🔴 뱅커", use_container_width=True):
-        st.session_state.history.append("뱅커")
-with top_col3:
-    if st.button("↩️ 뒤로가기", use_container_width=True):
-        if st.session_state.history: st.session_state.history.pop()
-with top_col4:
-    if st.button("🔄 초기화", use_container_width=True):
-        st.session_state.history = []
-        st.session_state.step = 1
-
-# 단계 선택 버튼 (1번~8번)
-st.write("### 단계 선택")
-step_cols = st.columns(8)
-for i in range(1, 9):
-    with step_cols[i-1]:
-        if st.button(f"{i}번", key=f"step_{i}", use_container_width=True):
-            st.session_state.step = i
-
-# 중앙 데이터 표시창 (사진의 넓은 흰색 박스)
 st.divider()
-c1, c2 = st.columns([1, 3])
-with c1:
-    st.subheader("현재 설정")
-    st.metric("선택된 단계", f"{st.session_state.step}번")
-    st.write("**분석 결과:**")
-    st.info("뱅커" if len(st.session_state.history) % 2 == 0 else "플레이어")
 
-with c2:
-    st.subheader("실시간 입력 기록")
+# --- [중단] 메인 컨트롤 버튼 (플레이어/뱅커 2열 배치) ---
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🔵 플레이어", key="p_btn"): st.session_state.history.append("P")
+with col2:
+    if st.button("🔴 뱅커", key="b_btn"): st.session_state.history.append("B")
+
+# 뒤로가기/초기화 (작은 버튼으로 배치)
+sub_col1, sub_col2 = st.columns(2)
+with sub_col1:
+    if st.button("↩️ 뒤로가기"): 
+        if st.session_state.history: st.session_state.history.pop()
+with sub_col2:
+    if st.button("🔄 초기화"): 
+        st.session_state.history = []
+        st.session_state.step = "1번"
+
+# --- [하단] 단계 선택 버튼 (4열씩 2줄 배치) ---
+st.write("### 🔢 단계 선택")
+step_list = ["1번", "2번", "3번", "4번", "5번", "6번", "7번", "8번"]
+for i in range(0, 8, 4):
+    cols = st.columns(4)
+    for j in range(4):
+        step_name = step_list[i+j]
+        if cols[j].button(step_name):
+            st.session_state.step = step_name
+
+# --- [최하단] 기록 테이블 ---
+with st.expander("📊 입력 기록 보기", expanded=True):
     if st.session_state.history:
-        record_df = pd.DataFrame(st.session_state.history, columns=["입력 결과"])
-        st.table(record_df.tail(10)) # 최근 10개 기록 표시
-    else:
-        st.write("데이터가 없습니다. 버튼을 눌러 입력을 시작하세요.")
-
-# 엑셀 다운로드 (기록 저장용)
-if st.session_state.history:
-    csv = record_df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("📥 현재 기록 엑셀 저장", csv, "baccarat_record.csv", "text/csv")
+        st.write(f"최근 기록: {' > '.join(st.session_state.history[-10:])}")
