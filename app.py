@@ -1,129 +1,114 @@
 import streamlit as st
 
-# 1. 페이지 설정 및 브라우저 기본 여백 완전 제거
-st.set_page_config(layout="wide")
+# 1. 페이지 설정 (모바일 최적화)
+st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-    /* 상단 메뉴 및 불필요한 공간 삭제 */
+    /* 여백 및 메뉴 완전 제거 */
     header, footer {visibility: hidden;}
-    [data-testid="stAppViewContainer"] {
-        overflow: hidden !important; /* 스크롤 절대 방지 */
-        height: 100vh;
-        background-color: #f0f0f0;
-    }
-    .block-container {
-        padding: 5px !important;
-        max-width: 100vw !important; /* 핸드폰 화면 폭에 100% 맞춤 */
-        margin: 0 !important;
-    }
+    .block-container { padding: 0px !important; margin: 0px !important; }
+    [data-testid="stAppViewContainer"] { overflow: hidden !important; background-color: #f0f0f0; }
 
-    /* 버튼 행: 무조건 가로로 꽉 채우기 */
-    div[data-testid="stHorizontalBlock"] {
+    /* 모바일 버튼 컨테이너 (강제 가로 정렬) */
+    .mobile-row {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important; /* 줄바꿈 차단 */
-        gap: 1px !important;
+        flex-wrap: nowrap !important; /* 줄바꿈 절대 방지 */
         width: 100% !important;
-    }
-    
-    /* 컬럼 간격 및 여백 제로 */
-    div[data-testid="column"] {
-        padding: 0px !important;
-        margin: 0px !important;
-        min-width: 0px !important;
-        flex: 1 !important;
+        gap: 0px !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* 버튼 디자인: 엑셀 유저폼 스타일 */
+    /* 버튼 스타일 (픽셀 단위로 모바일 최적화) */
     .stButton > button {
         width: 100% !important;
-        height: 45px !important;
+        height: 40px !important;
         border-radius: 0px !important;
-        border: 1px solid #333 !important;
+        border: 0.5px solid #333 !important;
         background-color: #e1e1e1 !important;
-        font-size: 14px !important;
+        font-size: 13px !important;
         font-weight: bold !important;
         color: black !important;
+        padding: 0px !important;
+        margin: 0px !important;
     }
 
-    /* 상단 정보창 */
-    .info-container {
+    /* 정보창 (중앙 정렬) */
+    .info-bar {
         display: flex;
-        border: 1px solid #333;
+        width: 100%;
         background: white;
-        margin-bottom: 3px;
+        border-bottom: 1px solid #333;
     }
-    .info-item {
+    .info-box {
         flex: 1;
         text-align: center;
-        padding: 10px;
-        font-size: 18px;
+        padding: 8px;
+        font-size: 16px;
         font-weight: bold;
         border-right: 1px solid #333;
     }
 
-    /* 바카라 차트 영역: 정석 로직 고정 */
-    .chart-box {
+    /* 바카라 보드 고정 */
+    .baccarat-board {
         background: white;
-        border: 1.5px solid #333;
-        height: calc(100vh - 190px); /* 버튼 높이 제외한 나머지 꽉 채움 */
-        padding: 5px;
+        border: 1px solid #333;
+        height: calc(100vh - 165px);
+        margin: 5px;
         display: flex;
-        gap: 3px;
         overflow-x: auto;
+        padding: 5px;
     }
-    .c-col { display: flex; flex-direction: column; width: 20px; text-align: center; }
-    .p-mark { color: blue; font-weight: bold; font-size: 16px; }
-    .b-mark { color: red; font-weight: bold; font-size: 16px; }
+    .board-col { display: flex; flex-direction: column; width: 18px; text-align: center; }
+    .p-mark { color: blue; font-weight: bold; font-size: 14px; line-height: 1.2; }
+    .b-mark { color: red; font-weight: bold; font-size: 14px; line-height: 1.2; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'history' not in st.session_state: st.session_state.history = []
 
-# --- 레이아웃 구현 ---
+# --- 레이아웃 시작 ---
 
-# 1. 정보창
-st.markdown(f"""
-    <div class="info-container">
-        <div class="info-item">1,000</div>
-        <div class="info-item" style="border-right:0;">플레이어</div>
+# 1. 상단 정보창
+st.markdown("""
+    <div class="info-bar">
+        <div class="info-box">1,000</div>
+        <div class="info-box" style="border-right:0;">플레이어</div>
     </div>
 """, unsafe_allow_html=True)
 
-# 2. 첫째 줄: 메인 버튼 4개 (플, 뱅, 뒤로, 초기)
-row1 = st.columns(4)
-with row1[0]:
+# 2. 메인 버튼 4개 (강제 1줄 배치)
+c1, c2, c3, c4 = st.columns(4)
+with c1: 
     if st.button("플"): st.session_state.history.append("P")
-with row1[1]:
+with c2: 
     if st.button("뱅"): st.session_state.history.append("B")
-with row1[2]:
+with c3: 
     if st.button("뒤로"): 
         if st.session_state.history: st.session_state.history.pop()
-with row1[3]:
+with c4: 
     if st.button("초기"): st.session_state.history = []
 
-# 3. 둘째 줄: 단계 버튼 8개 (1~8)
-row2 = st.columns(8)
+# 3. 단계 버튼 8개 (강제 1줄 배치)
+s_cols = st.columns(8)
 for i in range(1, 9):
-    with row2[i-1]:
+    with s_cols[i-1]:
         st.button(str(i))
 
-# 4. 바카라 로직 차트
-def get_chart(history):
-    if not history: return "<div class='chart-box'></div>"
+# 4. 바카라 정석 로직 (P-P 아래로, P-B 옆으로)
+def render_baccarat(history):
+    if not history: return "<div class='baccarat-board'></div>"
     cols, temp = [], [history[0]]
     for i in range(1, len(history)):
-        if history[i] == history[i-1]:
-            temp.append(history[i])
-        else:
-            cols.append(temp)
-            temp = [history[i]]
+        if history[i] == history[i-1]: temp.append(history[i])
+        else: cols.append(temp); temp = [history[i]]
     cols.append(temp)
     
-    html = "<div class='chart-box'>"
+    html = "<div class='baccarat-board'>"
     for col in cols:
-        html += "<div class='chart-col'>"
+        html += "<div class='board-col'>"
         for item in col:
             cls = "p-mark" if item == "P" else "b-mark"
             html += f"<span class='{cls}'>{item}</span>"
@@ -131,4 +116,4 @@ def get_chart(history):
     html += "</div>"
     return html
 
-st.markdown(get_chart(st.session_state.history), unsafe_allow_html=True)
+st.markdown(render_baccarat(st.session_state.history), unsafe_allow_html=True)
