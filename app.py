@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # 파일 이름 (반드시 GitHub에 올린 이름과 똑같이 적으세요!)
-EXCEL_FILE = "바카라 아르고.xlsm" 
+EXCEL_FILE = "바카라 알파고.xlsm" 
 
 st.title("📊 현재 엑셀 데이터 현황")
 
